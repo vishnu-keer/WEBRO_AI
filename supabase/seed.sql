@@ -1,0 +1,4 @@
+-- seed.sql — runs after migrations on `supabase db reset`.
+-- Workspaces + profiles are created automatically per user on signup
+-- (see handle_new_user in 0001). Knowledge base is loaded via `npm run ingest`.
+-- Add demo leads/fixtures here if you want a pre-populated local environment.
