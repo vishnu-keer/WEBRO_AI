@@ -29,6 +29,7 @@ export const MODEL_PRICING: Record<string, { input: number; output: number }> = 
   "claude-opus-4-8": { input: 15, output: 75 },
   "claude-fable-5": { input: 3, output: 15 },
   // Gemini free-tier models cost $0 — listed so cost logging is explicit (0), not "unknown".
+  "gemini-2.5-flash-lite": { input: 0, output: 0 },
   "gemini-2.0-flash": { input: 0, output: 0 },
   "gemini-2.5-flash": { input: 0, output: 0 },
 };
@@ -41,15 +42,19 @@ export function estimateCostUsd(model: string, inputTokens: number, outputTokens
 }
 
 /**
- * Gemini model used when LLM_PROVIDER=gemini. Override with GEMINI_MODEL in .env.local.
+ * Gemini model used when LLM_PROVIDER=gemini. Override with GEMINI_MODEL in .env.local
+ * (or in Vercel's Environment Variables in production).
  *
- * Default is `gemini-2.0-flash` on purpose:
- *  - Free tier allows ~1,500 requests/day (gemini-2.5-flash's free cap is far smaller,
- *    which is what caused the "quota exceeded" 429 on the proposal step).
- *  - It is NOT a "thinking" model, so its whole output budget goes to the JSON answer.
- *    (gemini-2.5-flash spends tokens on hidden thinking, which truncated the big audit
- *    JSON mid-string — the "Unterminated string in JSON" error.)
+ * Default is `gemini-2.5-flash-lite` on purpose:
+ *  - It is a CURRENT, supported model. (gemini-2.0-flash was deprecated/​shut down on
+ *    2026-06-01, which throttled its free quota — the source of the daily-limit errors.)
+ *  - Its free tier allows ~1,000 requests/day — by far the most headroom of the free
+ *    Flash models (2.5-flash is only ~250/day).
+ *  - "lite" = little/no hidden "thinking", so the whole output budget goes to the JSON
+ *    answer (avoids the "Unterminated string in JSON" truncation).
+ *  - It's also the cheapest model if you later enable billing (pay-as-you-go), so the
+ *    same default works whether you stay on the free tier or turn on billing.
  */
 export function geminiModel(): string {
-  return process.env.GEMINI_MODEL || "gemini-2.0-flash";
+  return process.env.GEMINI_MODEL || "gemini-2.5-flash-lite";
 }
