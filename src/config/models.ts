@@ -47,17 +47,19 @@ export function estimateCostUsd(model: string, inputTokens: number, outputTokens
  * Gemini model used when LLM_PROVIDER=gemini. Override with GEMINI_MODEL in .env.local
  * (or in Vercel's Environment Variables in production).
  *
- * Default is the alias `gemini-flash-latest` on purpose:
- *  - It is an ALIAS Google keeps pointed at the current stable Flash model, so it never
- *    "expires". (Pinning a specific version — 2.0-flash, 2.5-flash-lite — kept breaking:
- *    Google deprecates old models and blocks them for new accounts. An alias sidesteps
- *    that permanently.)
- *  - Flash tier = fast + the cheapest option if you later enable billing.
- *  - Big output budget (65k tokens), and generateObjectGemini raises maxOutputTokens so
- *    a "thinking" model's hidden tokens can't truncate the JSON answer.
+ * Default is the alias `gemini-flash-lite-latest` on purpose:
+ *  - It is an ALIAS Google keeps pointed at the current stable Flash-Lite model, so it
+ *    never "expires". (Pinning a version — 2.0-flash, 2.5-flash-lite — kept breaking:
+ *    Google deprecates old models and blocks them for new accounts. Aliases sidestep it.)
+ *  - The "lite" model has the most free-tier capacity, so it rarely returns the 503
+ *    "high demand" that the busier full `gemini-flash-latest` gives free users.
+ *  - Fast + cheapest if you later enable billing.
+ *  - Big output budget (65k tokens); generateObjectGemini raises maxOutputTokens so a
+ *    "thinking" model's hidden tokens can't truncate the JSON answer.
  *
- * If you ever want the smaller/cheaper variant, set GEMINI_MODEL=gemini-flash-lite-latest.
+ * For higher quality (at the cost of more 503s on free tier), set
+ * GEMINI_MODEL=gemini-flash-latest — or enable billing to remove the 503s entirely.
  */
 export function geminiModel(): string {
-  return process.env.GEMINI_MODEL || "gemini-flash-latest";
+  return process.env.GEMINI_MODEL || "gemini-flash-lite-latest";
 }
