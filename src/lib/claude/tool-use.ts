@@ -79,7 +79,10 @@ async function generateObjectGemini<T>(
         config: {
           systemInstruction: system,
           responseMimeType: "application/json",
-          maxOutputTokens: args.maxTokens ?? 8192,
+          // Current Gemini Flash models "think", and those hidden tokens share the
+          // output budget — a tight cap truncates the JSON ("Unterminated string").
+          // The answer itself is ~5-8k tokens; give generous headroom for thinking.
+          maxOutputTokens: Math.max(args.maxTokens ?? 8192, 32768),
         },
       });
 

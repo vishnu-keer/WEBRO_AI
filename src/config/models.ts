@@ -29,6 +29,8 @@ export const MODEL_PRICING: Record<string, { input: number; output: number }> = 
   "claude-opus-4-8": { input: 15, output: 75 },
   "claude-fable-5": { input: 3, output: 15 },
   // Gemini free-tier models cost $0 — listed so cost logging is explicit (0), not "unknown".
+  "gemini-flash-latest": { input: 0, output: 0 },
+  "gemini-flash-lite-latest": { input: 0, output: 0 },
   "gemini-2.5-flash-lite": { input: 0, output: 0 },
   "gemini-2.0-flash": { input: 0, output: 0 },
   "gemini-2.5-flash": { input: 0, output: 0 },
@@ -45,16 +47,17 @@ export function estimateCostUsd(model: string, inputTokens: number, outputTokens
  * Gemini model used when LLM_PROVIDER=gemini. Override with GEMINI_MODEL in .env.local
  * (or in Vercel's Environment Variables in production).
  *
- * Default is `gemini-2.5-flash-lite` on purpose:
- *  - It is a CURRENT, supported model. (gemini-2.0-flash was deprecated/​shut down on
- *    2026-06-01, which throttled its free quota — the source of the daily-limit errors.)
- *  - Its free tier allows ~1,000 requests/day — by far the most headroom of the free
- *    Flash models (2.5-flash is only ~250/day).
- *  - "lite" = little/no hidden "thinking", so the whole output budget goes to the JSON
- *    answer (avoids the "Unterminated string in JSON" truncation).
- *  - It's also the cheapest model if you later enable billing (pay-as-you-go), so the
- *    same default works whether you stay on the free tier or turn on billing.
+ * Default is the alias `gemini-flash-latest` on purpose:
+ *  - It is an ALIAS Google keeps pointed at the current stable Flash model, so it never
+ *    "expires". (Pinning a specific version — 2.0-flash, 2.5-flash-lite — kept breaking:
+ *    Google deprecates old models and blocks them for new accounts. An alias sidesteps
+ *    that permanently.)
+ *  - Flash tier = fast + the cheapest option if you later enable billing.
+ *  - Big output budget (65k tokens), and generateObjectGemini raises maxOutputTokens so
+ *    a "thinking" model's hidden tokens can't truncate the JSON answer.
+ *
+ * If you ever want the smaller/cheaper variant, set GEMINI_MODEL=gemini-flash-lite-latest.
  */
 export function geminiModel(): string {
-  return process.env.GEMINI_MODEL || "gemini-2.5-flash-lite";
+  return process.env.GEMINI_MODEL || "gemini-flash-latest";
 }
