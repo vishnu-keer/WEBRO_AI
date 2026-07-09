@@ -40,3 +40,7 @@ export default async function AuditsPage() {
     </div>
   );
 }
+
+// This page triggers an AI agent via a server action; allow up to Vercel's
+// 60s function limit so long Gemini calls are not cut off in production.
+export const maxDuration = 60;

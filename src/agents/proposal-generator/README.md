@@ -1,14 +1,13 @@
-# Proposal Generator Agent (Phase 6)
+# Proposal Generator Agent (Phase 6 — built)
 
-**Status:** not implemented yet — placeholder.
+Writes a tailored sales proposal for a prospect, grounded in the prospect's site,
+WEBRO's knowledge base, and (if present) the prospect's latest audit findings.
 
-Assembles a tailored sales proposal + pricing using RAG over WEBRO's portfolio, pricing, and proposal template.
+**Flow:** `gatherProposalContext` scrapes the prospect + loads `knowledge-base/*.md` →
+`run.ts` also pulls the latest audit for that URL → the Runner writes a structured
+proposal → saved to `public.proposals`.
 
-When built, this folder contains exactly four small files (per the Agent Core contract):
+> Tip: fill in `knowledge-base/company_info.md`, `pricing.md`, `portfolio.md` for
+> real pricing/proof. It works with the starter placeholders too, just less specific.
 
-- `index.ts`  — the `AgentSpec` (name, model, input/output schemas, prompt) + `registerAgent`
-- `prompt.ts` — the system prompt
-- `schema.ts` — Zod input/output types
-- `tools.ts`  — (optional) which shared tools it is granted
-
-It plugs into `src/agents/core` (the Runner) — no bespoke Claude/DB/logging code.
+Trigger via `/dashboard/proposals`.

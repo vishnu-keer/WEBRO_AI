@@ -11,8 +11,8 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
-import { anthropic, type TokenUsage } from "./client";
-import type { ModelId } from "@/config/models";
+import { anthropic, gemini, llmProvider, type TokenUsage } from "./client";
+import { geminiModel, type ModelId } from "@/config/models";
 
 type Msg = Anthropic.MessageParam;
 
@@ -28,6 +28,112 @@ export interface GenerateObjectArgs<T> {
 }
 
 export async function generateObject<T>(
+  args: GenerateObjectArgs<T>,
+): Promise<{ object: T; usage: TokenUsage }> {
+  if (llmProvider() === "gemini") return generateObjectGemini(args);
+  return generateObjectAnthropic(args);
+}
+
+const GEMINI_MAX_RETRIES = 3;
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** True if the error is a Gemini rate-limit / quota error (HTTP 429). */
+function isGeminiRateLimit(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return /\b429\b|RESOURCE_EXHAUSTED|rate limit|quota/i.test(msg);
+}
+
+/** True if the 429 is the *daily* free-tier cap (no point retrying within the same run). */
+function isGeminiDailyQuota(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return /PerDay|per day|\bdaily\b/i.test(msg);
+}
+
+/** Server-suggested wait (seconds) from a 429 body, e.g. "retryDelay":"3s". */
+function geminiRetryDelaySeconds(err: unknown): number | null {
+  const msg = err instanceof Error ? err.message : String(err);
+  const secs = msg.match(/"retryDelay"\s*:\s*"(\d+(?:\.\d+)?)s"/)?.[1];
+  return secs ? Math.ceil(parseFloat(secs)) : null;
+}
+
+/** Gemini structured output: ask for JSON, then validate with Zod. */
+async function generateObjectGemini<T>(
+  args: GenerateObjectArgs<T>,
+): Promise<{ object: T; usage: TokenUsage }> {
+  const jsonSchema = zodToJsonSchema(args.schema, { target: "openApi3", $refStrategy: "none" });
+  const userText = args.messages
+    .map((m) => (typeof m.content === "string" ? m.content : ""))
+    .filter(Boolean)
+    .join("\n\n");
+  const system =
+    `${args.system}\n\nReturn ONLY a JSON object that matches this JSON schema ` +
+    `(no markdown fences, no commentary):\n${JSON.stringify(jsonSchema)}`;
+
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= GEMINI_MAX_RETRIES; attempt++) {
+    try {
+      const res = await gemini().models.generateContent({
+        model: geminiModel(),
+        contents: userText,
+        config: {
+          systemInstruction: system,
+          responseMimeType: "application/json",
+          maxOutputTokens: args.maxTokens ?? 8192,
+        },
+      });
+
+      const raw = (res.text ?? "").trim();
+      const cleaned = raw.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
+      const payload = cleaned || raw;
+
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(payload);
+      } catch {
+        // Almost always means the model hit its output-token limit and the JSON
+        // was cut off. Give an actionable message instead of a cryptic parse error.
+        const finish = res.candidates?.[0]?.finishReason;
+        if (finish === "MAX_TOKENS" || !/[}\]]\s*$/.test(payload)) {
+          throw new Error(
+            `Gemini's response was cut off before the JSON finished ` +
+              `(finishReason=${finish ?? "unknown"}, model=${geminiModel()}). ` +
+              `Use a model with a larger output limit or request less detail.`,
+          );
+        }
+        throw new Error(`Gemini returned invalid JSON that could not be parsed (model=${geminiModel()}).`);
+      }
+
+      return {
+        object: args.schema.parse(parsed),
+        usage: {
+          inputTokens: res.usageMetadata?.promptTokenCount ?? 0,
+          outputTokens: res.usageMetadata?.candidatesTokenCount ?? 0,
+        },
+      };
+    } catch (err) {
+      lastErr = err;
+      // Retry only transient (per-minute) rate limits, and never on the final attempt.
+      if (attempt < GEMINI_MAX_RETRIES && isGeminiRateLimit(err) && !isGeminiDailyQuota(err)) {
+        const backoff = geminiRetryDelaySeconds(err) ?? Math.min(2 ** attempt, 8);
+        await sleep(backoff * 1000);
+        continue;
+      }
+      // Daily free-tier cap: turn Google's wall-of-text error into a clear next step.
+      if (isGeminiRateLimit(err) && isGeminiDailyQuota(err)) {
+        throw new Error(
+          `Gemini free-tier daily quota reached for model "${geminiModel()}". ` +
+            `Wait for the daily reset (midnight US Pacific), set GEMINI_MODEL to another ` +
+            `free model, or add billing to your Google AI Studio key.`,
+        );
+      }
+      throw err;
+    }
+  }
+  throw lastErr;
+}
+
+async function generateObjectAnthropic<T>(
   args: GenerateObjectArgs<T>,
 ): Promise<{ object: T; usage: TokenUsage }> {
   const toolName = args.toolName ?? "record_result";

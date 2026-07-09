@@ -1,14 +1,18 @@
-# Email Sequence Agent (Phase 5)
+# Email Campaign Agent (Phase 5 — built)
 
-**Status:** not implemented yet — placeholder.
+Writes a multi-step outreach sequence from WEBRO to a prospect (human, trust-first,
+non-spammy), personalized from the prospect's own website.
 
-Designs a multi-step, personalized outreach/nurture sequence with trust-first, non-spammy messaging.
+**Flow:** `gatherBusiness` scrapes the prospect → the shared Runner sends it to the
+LLM with the goal → a 4-5 email sequence (subject, body, delay, purpose) → saved to
+`public.email_sequences`.
 
-When built, this folder contains exactly four small files (per the Agent Core contract):
+| File | Purpose |
+|---|---|
+| `schema.ts` | Zod input/output (steps with subject/body/delay/purpose). |
+| `prompt.ts` | Trust-first outreach copywriter prompt (WEBRO voice). |
+| `gather.ts` | Scrape the prospect's website. |
+| `index.ts` | `AgentSpec` + input renderer + `registerAgent`. |
+| `run.ts` | `runEmailCampaign` service + job handler. |
 
-- `index.ts`  — the `AgentSpec` (name, model, input/output schemas, prompt) + `registerAgent`
-- `prompt.ts` — the system prompt
-- `schema.ts` — Zod input/output types
-- `tools.ts`  — (optional) which shared tools it is granted
-
-It plugs into `src/agents/core` (the Runner) — no bespoke Claude/DB/logging code.
+Trigger via `/dashboard/emails`.

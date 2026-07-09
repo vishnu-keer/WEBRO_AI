@@ -1,8 +1,11 @@
-# Master Orchestrator (Phase 8)
+# Master Orchestrator (Phase 8 — built)
 
-Composes the seven worker agents into **workflows** — the actual product journeys
-(e.g. *Full Prospect Workup*: Audit → Competitor ∥ SEO → Report → Proposal).
+One-click **Full Prospect Workup**: runs Audit -> SEO -> Competitors -> Marketing
+Report -> Email -> Proposal for a single prospect URL, in dependency order, and saves
+a `workflow_runs` row with each step's status + a link to its output.
 
-Built last on purpose: you can't conduct an orchestra with no instruments. The
-reusable foundation it stands on (Runner, tools, job queue, data model) already
-exists from Phase 0. Types live in `types.ts`; the engine arrives in Phase 8.
+- `run.ts` — `runFullWorkup(req, ctx)` runs the sequence (each step isolated).
+- `types.ts` — step-result + context types.
+
+Synchronous today (works on localhost). Production can move it onto the background
+job queue in `src/lib/jobs`. Trigger via `/dashboard/workflows`.

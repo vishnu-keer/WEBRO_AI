@@ -10,6 +10,8 @@
  * No agent re-implements any of this. Add an agent = write a spec + prompt.
  */
 import { generateObject } from "@/lib/claude/tool-use";
+import { llmProvider } from "@/lib/claude/client";
+import { geminiModel } from "@/config/models";
 import { retrieve, type RetrievedChunk } from "@/lib/rag/retrieve";
 import { recordAgentRun } from "./telemetry";
 import type { AgentSpec, AgentContext, AgentRunResult } from "./types";
@@ -21,6 +23,9 @@ export async function runAgent<I, O>(
 ): Promise<AgentRunResult<O>> {
   const started = Date.now();
   const input = spec.input.parse(rawInput);
+  // Log the model that ACTUALLY ran so telemetry + cost are accurate. When
+  // LLM_PROVIDER=gemini, generateObject ignores spec.model and uses geminiModel().
+  const billedModel = llmProvider() === "gemini" ? geminiModel() : spec.model;
 
   try {
     let retrieved: RetrievedChunk[] = [];
@@ -57,7 +62,7 @@ export async function runAgent<I, O>(
     await recordAgentRun(ctx, {
       agent: spec.name,
       version: spec.version,
-      model: spec.model,
+      model: billedModel,
       input,
       output: object,
       usage,
@@ -70,7 +75,7 @@ export async function runAgent<I, O>(
     await recordAgentRun(ctx, {
       agent: spec.name,
       version: spec.version,
-      model: spec.model,
+      model: billedModel,
       input,
       usage: { inputTokens: 0, outputTokens: 0 },
       status: "error",

@@ -11,9 +11,11 @@ next-env.d.ts
 # production
 /build
 
-# env
+# env — never commit real secrets (including any backup copies)
 .env
 .env*.local
+.env*.bak
+*.local.bak
 
 # supabase
 /supabase/.branches

@@ -1,10 +1,13 @@
 import Link from "next/link";
-import { LayoutDashboard, Gauge, Search, Users, FileText, BarChart3, Workflow } from "lucide-react";
+import { LayoutDashboard, Gauge, Search, Swords, Megaphone, Mail, Users, FileText, BarChart3, Workflow } from "lucide-react";
 
 const nav = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
   { href: "/dashboard/audits", label: "Audits", icon: Gauge },
   { href: "/dashboard/seo", label: "SEO", icon: Search },
+  { href: "/dashboard/competitors", label: "Competitors", icon: Swords },
+  { href: "/dashboard/ads", label: "Ads", icon: Megaphone },
+  { href: "/dashboard/emails", label: "Emails", icon: Mail },
   { href: "/dashboard/leads", label: "Leads", icon: Users },
   { href: "/dashboard/proposals", label: "Proposals", icon: FileText },
   { href: "/dashboard/reports", label: "Reports", icon: BarChart3 },

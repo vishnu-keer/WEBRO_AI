@@ -7,3 +7,32 @@ export interface AuditFormState {
 export interface SeoFormState {
   error?: string;
 }
+
+export interface CompetitorFormState {
+  error?: string;
+}
+
+export interface AdsFormState {
+  error?: string;
+}
+
+export interface EmailFormState {
+  error?: string;
+}
+
+export interface ProposalFormState {
+  error?: string;
+}
+
+export interface LeadsFormState {
+  error?: string;
+  message?: string;
+}
+
+export interface ReportFormState {
+  error?: string;
+}
+
+export interface WorkflowFormState {
+  error?: string;
+}

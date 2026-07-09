@@ -4,3 +4,9 @@
  */
 import "./website-audit/run";
 import "./seo/run";
+import "./competitor-research/run";
+import "./ad-copy/run";
+import "./email-sequence/run";
+import "./proposal-generator/run";
+import "./leads-finder/run";
+import "./marketing-report/run";

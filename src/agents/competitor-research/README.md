@@ -1,14 +1,19 @@
-# Competitor Research Agent (Phase 3)
+# Competitor Research Agent (Phase 3 — built)
 
-**Status:** not implemented yet — placeholder.
+Given a prospect's website (+ optional location/industry), it finds their real
+competitors and produces sales intelligence for WEBRO.
 
-Finds nearby/again-industry competitors (web search + scrape) and compares positioning, pricing signals, strengths, and weaknesses.
+**Flow (deterministic, provider-agnostic):** `discoverCompetitors` scrapes the
+prospect, web-searches for rivals (Firecrawl), and scrapes the top few → the shared
+Runner sends everything to the LLM (Gemini or Claude) for a structured comparison →
+saved to `public.competitors`.
 
-When built, this folder contains exactly four small files (per the Agent Core contract):
+| File | Purpose |
+|---|---|
+| `schema.ts` | Zod input/research-context/output. |
+| `prompt.ts` | Competitive-analyst prompt (WEBRO sales angle). |
+| `discover.ts` | Scrape target + Firecrawl search + scrape competitors. |
+| `index.ts` | `AgentSpec` + input renderer + `registerAgent`. |
+| `run.ts` | `runCompetitorResearch` service + job handler. |
 
-- `index.ts`  — the `AgentSpec` (name, model, input/output schemas, prompt) + `registerAgent`
-- `prompt.ts` — the system prompt
-- `schema.ts` — Zod input/output types
-- `tools.ts`  — (optional) which shared tools it is granted
-
-It plugs into `src/agents/core` (the Runner) — no bespoke Claude/DB/logging code.
+Trigger via `/dashboard/competitors`.

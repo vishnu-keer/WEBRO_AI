@@ -1,14 +1,18 @@
-# Ad Copy Agent (Phase 4)
+# Ads Generator Agent (Phase 4 — built)
 
-**Status:** not implemented yet — placeholder.
+Generates platform-ready ad copy + A/B variants for a business, grounded in that
+business's own website (no RAG / Voyage key needed — works with Gemini or Claude).
 
-Generates platform-ready ad copy and A/B variants grounded in the audit + WEBRO's voice.
+**Flow:** `gatherBusiness` scrapes the site → the shared Runner sends it to the LLM
+with the chosen platform + objective → structured ad set (variants, keywords,
+targeting tips) → saved to `public.ad_copy`.
 
-When built, this folder contains exactly four small files (per the Agent Core contract):
+| File | Purpose |
+|---|---|
+| `schema.ts` | Zod input/output (variants, keywords, targeting). |
+| `prompt.ts` | Performance-marketer/copywriter prompt. |
+| `gather.ts` | Scrape the client's website. |
+| `index.ts` | `AgentSpec` + input renderer + `registerAgent`. |
+| `run.ts` | `runAdsGenerator` service + job handler. |
 
-- `index.ts`  — the `AgentSpec` (name, model, input/output schemas, prompt) + `registerAgent`
-- `prompt.ts` — the system prompt
-- `schema.ts` — Zod input/output types
-- `tools.ts`  — (optional) which shared tools it is granted
-
-It plugs into `src/agents/core` (the Runner) — no bespoke Claude/DB/logging code.
+Trigger via `/dashboard/ads`.

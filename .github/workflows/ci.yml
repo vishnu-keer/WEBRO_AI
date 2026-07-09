@@ -1,0 +1,42 @@
+name: CI
+
+# Runs on every push to main and on every pull request. Catches type errors,
+# lint problems, and build failures BEFORE they reach production on Vercel.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+        # The build validates public env at load time, so give it harmless
+        # placeholders. These are NOT secrets and are never used at runtime —
+        # the real values live in Vercel's Environment Variables.
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+          NEXT_PUBLIC_APP_URL: https://example.com
+          SUPABASE_SERVICE_ROLE_KEY: placeholder-service-role-key
+          FIRECRAWL_API_KEY: placeholder-firecrawl-key

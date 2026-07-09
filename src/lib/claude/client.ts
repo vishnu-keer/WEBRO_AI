@@ -1,15 +1,34 @@
 /**
- * The single Anthropic entry point. Everything that talks to Claude goes through
- * here, so switching models/providers touches one file (Design principle #2).
+ * The single LLM entry point. Both providers live here so switching the reasoning
+ * layer is one env var (LLM_PROVIDER) — Design principle #2.
  */
 import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenAI } from "@google/genai";
 import { serverEnv } from "@/config/env";
 
-let _client: Anthropic | null = null;
+export type LlmProvider = "anthropic" | "gemini";
+export type TokenUsage = { inputTokens: number; outputTokens: number };
 
-export function anthropic(): Anthropic {
-  if (!_client) _client = new Anthropic({ apiKey: serverEnv().ANTHROPIC_API_KEY });
-  return _client;
+export function llmProvider(): LlmProvider {
+  return serverEnv().LLM_PROVIDER;
 }
 
-export type TokenUsage = { inputTokens: number; outputTokens: number };
+let _anthropic: Anthropic | null = null;
+export function anthropic(): Anthropic {
+  const key = serverEnv().ANTHROPIC_API_KEY;
+  if (!key) {
+    throw new Error("LLM_PROVIDER is 'anthropic' but ANTHROPIC_API_KEY is not set in .env.local.");
+  }
+  if (!_anthropic) _anthropic = new Anthropic({ apiKey: key });
+  return _anthropic;
+}
+
+let _gemini: GoogleGenAI | null = null;
+export function gemini(): GoogleGenAI {
+  const key = serverEnv().GEMINI_API_KEY;
+  if (!key) {
+    throw new Error("LLM_PROVIDER is 'gemini' but GEMINI_API_KEY is not set in .env.local.");
+  }
+  if (!_gemini) _gemini = new GoogleGenAI({ apiKey: key });
+  return _gemini;
+}
