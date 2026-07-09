@@ -34,7 +34,7 @@ export async function generateObject<T>(
   return generateObjectAnthropic(args);
 }
 
-const GEMINI_MAX_RETRIES = 3;
+const GEMINI_MAX_RETRIES = 4;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -48,6 +48,12 @@ function isGeminiRateLimit(err: unknown): boolean {
 function isGeminiDailyQuota(err: unknown): boolean {
   const msg = err instanceof Error ? err.message : String(err);
   return /PerDay|per day|\bdaily\b/i.test(msg);
+}
+
+/** True for transient server-side blips (503/500 overload) that clear on retry. */
+function isGeminiTransient(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return /\b503\b|\b500\b|UNAVAILABLE|INTERNAL|overloaded|high demand|try again/i.test(msg);
 }
 
 /** Server-suggested wait (seconds) from a 429 body, e.g. "retryDelay":"3s". */
@@ -116,8 +122,12 @@ async function generateObjectGemini<T>(
       };
     } catch (err) {
       lastErr = err;
-      // Retry only transient (per-minute) rate limits, and never on the final attempt.
-      if (attempt < GEMINI_MAX_RETRIES && isGeminiRateLimit(err) && !isGeminiDailyQuota(err)) {
+      // Auto-retry the recoverable cases (never on the final attempt):
+      //  - per-minute rate limits (but NOT the daily cap — that won't clear by waiting)
+      //  - transient 503/500 "high demand" server blips
+      const recoverable =
+        (isGeminiRateLimit(err) && !isGeminiDailyQuota(err)) || isGeminiTransient(err);
+      if (attempt < GEMINI_MAX_RETRIES && recoverable) {
         const backoff = geminiRetryDelaySeconds(err) ?? Math.min(2 ** attempt, 8);
         await sleep(backoff * 1000);
         continue;
