@@ -85,6 +85,10 @@ async function generateObjectGemini<T>(
         config: {
           systemInstruction: system,
           responseMimeType: "application/json",
+          // temperature 0 = deterministic: the model picks its single most-confident
+          // answer, so re-analyzing the same site gives consistent, repeatable scores
+          // instead of a different number each run.
+          temperature: 0,
           // Current Gemini Flash models "think", and those hidden tokens share the
           // output budget — a tight cap truncates the JSON ("Unterminated string").
           // The answer itself is ~5-8k tokens; give generous headroom for thinking.
@@ -158,6 +162,7 @@ async function generateObjectAnthropic<T>(
   const res = await anthropic().messages.create({
     model: args.model,
     max_tokens: args.maxTokens ?? 4096,
+    temperature: 0, // deterministic → consistent, repeatable scores for the same input
     system: args.system,
     messages: args.messages,
     tools: [
